@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.next/
+
+# Environment secrets — NEVER commit .env with real values
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ML model artifacts — models are built from training scripts, not committed
+services/ml-api/models/*.pkl
+services/ml-api/models/*.joblib
+services/ml-api/models/*.bin
+
+# Prisma generated client (regenerated from schema)
+node_modules/.prisma/
+
+# Editor
+.vscode/settings.json
+.idea/

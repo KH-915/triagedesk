@@ -1,0 +1,48 @@
+
+# TriageDesk — Project Rules
+
+## Project goal
+Build a portfolio-quality full-stack support ticket
+application with ML-assisted ticket classification.
+
+## Learner-first workflow
+- The developer is learning while building.
+- For unfamiliar concepts, explain the relevant idea
+  before implementing it.
+- Do not replace every learning step with a full solution.
+- Prefer small, reviewable implementation increments.
+- Explain important trade-offs and assumptions.
+
+## Before implementation
+- Inspect the existing code before proposing changes.
+- For non-trivial tasks, explore first and propose a plan.
+- Do not modify files until the implementation plan
+  has been reviewed and approved.
+- Keep changes limited to the agreed task.
+
+## Technical constraints
+- Frontend: React and TypeScript.
+- Backend: Node.js and Express.
+- Database: PostgreSQL.
+- ML service: Python and FastAPI.
+- Use existing dependencies and conventions where possible.
+- Validate untrusted input on the backend.
+- Enforce resource authorization on the server.
+- Never commit credentials, tokens, or real secrets.
+- Avoid unnecessary abstractions and dependencies.
+
+## Verification
+- Add or update tests for behavior changes.
+- Run relevant tests and build checks after implementation.
+- Report exact commands and outcomes.
+- Never claim a test passed if it was not run successfully.
+- Never fabricate benchmarks, metrics, or completed features.
+
+## Completion report
+At the end of each task, provide:
+1. Summary of changes.
+2. Files changed and why.
+3. Tests/build checks and their results.
+4. Known limitations.
+5. Key concepts I should be able to explain.
+6. A suggested next task.

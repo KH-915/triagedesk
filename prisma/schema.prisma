@@ -1,0 +1,101 @@
+// ────────────────────────────────────────────────────────────
+// TriageDesk — Prisma schema
+// Source of truth for all database tables.
+// After editing, run: npm run db:generate && npm run db:migrate
+// ────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────
+
+enum Role {
+  REQUESTER
+  AGENT
+}
+
+enum TicketStatus {
+  open
+  in_progress
+  pending_info
+  resolved
+  closed
+}
+
+enum Priority {
+  low
+  medium
+  high
+  critical
+}
+
+enum MlStatus {
+  // Ticket was just created; ML call has not completed yet.
+  pending
+  // ML service returned a valid prediction.
+  success
+  // ML call failed (timeout, network error, non-2xx response).
+  failed
+}
+
+// ─── Models ──────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  role         Role     @default(REQUESTER)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  submittedTickets Ticket[] @relation("SubmittedTickets")
+  confirmedTickets Ticket[] @relation("ConfirmedTickets")
+
+  @@map("users")
+}
+
+model Ticket {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  // Submitter
+  userId String @map("user_id") @db.Uuid
+
+  // Ticket content
+  title String @db.VarChar(200)
+  body  String @db.Text
+
+  // Lifecycle
+  status   TicketStatus @default(open)
+  priority Priority?
+
+  // ML prediction fields — set once after creation; NEVER overwritten by agent actions.
+  predictedCategory String?  @map("predicted_category") @db.VarChar(100)
+  confidenceScore   Float?   @map("confidence_score")
+  mlStatus          MlStatus @default(pending) @map("ml_status")
+  modelVersion      String?  @map("model_version") @db.VarChar(50)
+
+  // Human-confirmed category — set by AGENT; does not overwrite prediction fields.
+  confirmedCategory String?   @map("confirmed_category") @db.VarChar(100)
+  confirmedBy       String?   @map("confirmed_by") @db.Uuid
+  confirmedAt       DateTime? @map("confirmed_at") @db.Timestamptz
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  user      User  @relation("SubmittedTickets", fields: [userId], references: [id])
+  confirmer User? @relation("ConfirmedTickets", fields: [confirmedBy], references: [id])
+
+  // Spec §5.4: indexes for common filter and sort patterns
+  @@index([userId], name: "tickets_user_id_idx")
+  @@index([status], name: "tickets_status_idx")
+  @@index([priority], name: "tickets_priority_idx")
+  @@index([confirmedCategory], name: "tickets_confirmed_category_idx")
+  @@index([createdAt(sort: Desc)], name: "tickets_created_at_idx")
+  @@map("tickets")
+}

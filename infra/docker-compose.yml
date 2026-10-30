@@ -1,0 +1,79 @@
+# ────────────────────────────────────────────────────────────
+# TriageDesk — Docker Compose (development)
+#
+# Usage:
+#   docker compose -f infra/docker-compose.yml up -d db
+#   (Start only the DB for local API development)
+#
+#   docker compose -f infra/docker-compose.yml up
+#   (Start everything including the ML service)
+# ────────────────────────────────────────────────────────────
+
+services:
+
+  # ── PostgreSQL ─────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: triagedesk
+      POSTGRES_PASSWORD: triagedesk
+      POSTGRES_DB: triagedesk
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Init script creates the test database alongside the main one
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U triagedesk"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI ML Service ──────────────────────────────────────
+  ml-api:
+    build:
+      context: ../services/ml-api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      MODEL_PATH: /app/models/model.pkl
+      MODEL_VERSION: v1.0.0
+    volumes:
+      # Mount the models directory at runtime so the image is immutable
+      - ../services/ml-api/models:/app/models:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ── Node.js API (optional — run locally with `npm run dev:api` instead) ──
+  # Uncomment to run the full stack in containers.
+  #
+  # api:
+  #   build:
+  #     context: ..
+  #     dockerfile: services/api/Dockerfile
+  #   restart: unless-stopped
+  #   ports:
+  #     - "4000:4000"
+  #   environment:
+  #     NODE_ENV: production
+  #     DATABASE_URL: postgresql://triagedesk:triagedesk@db:5432/triagedesk
+  #     ML_SERVICE_URL: http://ml-api:8000
+  #   env_file:
+  #     - ../.env
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+
+volumes:
+  postgres_data:

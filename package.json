@@ -1,0 +1,22 @@
+{
+  "name": "triagedesk",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "services/*"
+  ],
+  "scripts": {
+    "dev:api": "npm --workspace=services/api run dev",
+    "dev:web": "npm --workspace=apps/web run dev",
+    "test:api": "npm --workspace=services/api run test",
+    "test:ml": "cd services/ml-api && pytest",
+    "db:migrate": "npx prisma migrate dev --schema=prisma/schema.prisma",
+    "db:migrate:deploy": "npx prisma migrate deploy --schema=prisma/schema.prisma",
+    "db:studio": "npx prisma studio --schema=prisma/schema.prisma",
+    "db:generate": "npx prisma generate --schema=prisma/schema.prisma"
+  },
+  "devDependencies": {
+    "prisma": "^5.21.0"
+  }
+}
