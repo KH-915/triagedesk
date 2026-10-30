@@ -23,8 +23,8 @@ jobs:
       DATABASE_URL: postgresql://triagedesk:triagedesk@localhost:5432/triagedesk_test
       TEST_DATABASE_URL: postgresql://triagedesk:triagedesk@localhost:5432/triagedesk_test
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: 20, cache: npm }
       - run: npm ci
       - run: npx prisma generate --schema=prisma/schema.prisma
@@ -35,8 +35,8 @@ jobs:
   web:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: 20, cache: npm }
       - run: npm ci
       - run: npm --workspace=apps/web run build
@@ -47,8 +47,8 @@ jobs:
       run:
         working-directory: services/ml-api
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip

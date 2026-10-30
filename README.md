@@ -1,5 +1,7 @@
 # TriageDesk — ML-Assisted Support Ticket Management
 
+[![CI](https://github.com/KH-915/triagedesk/actions/workflows/ci.yml/badge.svg)](https://github.com/KH-915/triagedesk/actions/workflows/ci.yml)
+
 ## Overview
 
 TriageDesk is a full-stack support ticket management application that helps small support teams organize incoming requests and streamline the initial triage process.
@@ -55,7 +57,7 @@ TriageDesk is a portfolio project demonstrating full-stack engineering and ML se
 
 Working end to end (verified locally): register/login, create ticket → ML category suggestion, agent confirms/overrides category, priority and status transitions, search/filter/pagination, role-based access (requesters see only their own tickets).
 
-**Not done yet:** CI workflow, Docker image for the API/web, cloud deployment, frontend tests, dashboard. The ML model is trained on a **synthetic** dataset — see [reports/model-evaluation.md](reports/model-evaluation.md); its scores are not real-world accuracy.
+**Not done yet:** cloud deployment, frontend tests, dashboard. The ML model is trained on a **synthetic** dataset — see [reports/model-evaluation.md](reports/model-evaluation.md); its scores are not real-world accuracy.
 
 ## Local setup
 
@@ -104,4 +106,4 @@ npm --workspace=apps/web run build
 
 `.github/workflows/ci.yml` runs on every push to `main` and every PR: API type-check + integration tests (against a Postgres service container), web type-check + build, and ML data generation + training + pytest.
 
-`services/api/Dockerfile` and `apps/web/Dockerfile` are built from the **repo root** (`docker build -f services/api/Dockerfile .`). The API image runs `prisma migrate deploy` on start. The three images (api, web, ml-api) build locally and the API image boots against the compose Postgres. The GitHub Actions workflow has not yet run on a real runner.
+`services/api/Dockerfile` and `apps/web/Dockerfile` are built from the **repo root** (`docker build -f services/api/Dockerfile .`). The API image runs `prisma migrate deploy` on start. The three images (api, web, ml-api) build locally and the API image boots against the compose Postgres; CI does not build or publish images.
