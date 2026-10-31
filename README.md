@@ -57,6 +57,8 @@ TriageDesk is a portfolio project demonstrating full-stack engineering and ML se
 
 Working end to end (verified locally): register/login, create ticket → ML category suggestion, agent confirms/overrides category, priority and status transitions, search/filter/pagination, role-based access (requesters see only their own tickets).
 
+**Bulk import (agents):** the Import page (`POST /api/tickets/import`, multipart field `file`) takes a `.csv` or `.xlsx` (first sheet) with a header row: `title`, `body` (or `description`), optional `priority`. Max 1000 rows / 5 MB. It is all-or-nothing: any invalid row returns 422 with per-row errors and nothing is created. Categories come from one call to the ML service's `POST /predict/batch`; if that fails, tickets are still imported with `mlStatus = failed`.
+
 **Not done yet:** cloud deployment, frontend tests, dashboard. The ML model is trained on a **synthetic** dataset — see [reports/model-evaluation.md](reports/model-evaluation.md); its scores are not real-world accuracy.
 
 ## Quick start

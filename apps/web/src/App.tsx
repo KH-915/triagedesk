@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import TicketListPage from './pages/TicketListPage';
 import NewTicketPage from './pages/NewTicketPage';
 import TicketDetailPage from './pages/TicketDetailPage';
+import ImportTicketsPage from './pages/ImportTicketsPage';
 
 function Protected({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -21,6 +22,7 @@ export default function App() {
         {user && (
           <nav>
             <Link to="/tickets/new">New ticket</Link>
+            {user.role === 'AGENT' && <Link to="/tickets/import">Import</Link>}
             <span className="muted">{user.email} · {user.role}</span>
             <button className="link" onClick={logout}>Log out</button>
           </nav>
@@ -31,6 +33,7 @@ export default function App() {
           <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
           <Route path="/" element={<Protected><TicketListPage /></Protected>} />
           <Route path="/tickets/new" element={<Protected><NewTicketPage /></Protected>} />
+          <Route path="/tickets/import" element={<Protected><ImportTicketsPage /></Protected>} />
           <Route path="/tickets/:id" element={<Protected><TicketDetailPage /></Protected>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

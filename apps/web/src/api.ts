@@ -54,17 +54,21 @@ export const getToken = () => localStorage.getItem(TOKEN_KEY);
 export const setToken = (t: string | null) =>
   t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY);
 
+export interface ImportResult { imported: number; mlStatus: 'success' | 'failed' }
+
+// FormData bodies are sent as-is so the browser sets the multipart boundary itself.
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const token = getToken();
+  const isJson = body !== undefined && !(body instanceof FormData);
   let res: Response;
   try {
     res = await fetch(`/api${path}`, {
       method,
       headers: {
-        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        ...(isJson ? { 'Content-Type': 'application/json' } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: isJson ? JSON.stringify(body) : (body as FormData | undefined),
     });
   } catch {
     throw new ApiError(0, 'NETWORK', 'Cannot reach the server. Is the API running?');
@@ -91,4 +95,9 @@ export const api = {
   createTicket: (title: string, body: string) => request<Ticket>('POST', '/tickets', { title, body }),
   updateTicket: (id: string, patch: { status?: Status; priority?: Priority; confirmed_category?: string }) =>
     request<Ticket>('PATCH', `/tickets/${id}`, patch),
+  importTickets: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return request<ImportResult>('POST', '/tickets/import', form);
+  },
 };

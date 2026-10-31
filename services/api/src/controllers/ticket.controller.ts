@@ -10,7 +10,9 @@ import {
   listTickets,
   getTicketById,
   updateTicket,
+  importTickets,
 } from '../services/ticket.service';
+import { parseSpreadsheet } from '../lib/spreadsheet';
 import { JwtPayload } from '../types';
 import { AppError } from '../middleware/errorHandler';
 
@@ -94,6 +96,24 @@ export async function updateTicketHandler(
     }
     const ticket = await updateTicket(req.params.id as string, parsed.data, getUser(req));
     res.status(200).json(ticket);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** Expects a multipart upload in the "file" field (see the multer middleware in ticket.router.ts). */
+export async function importTicketsHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    if (!req.file) {
+      throw new AppError(400, 'VALIDATION_ERROR', 'Attach a .csv or .xlsx file in the "file" field.');
+    }
+    const rows = await parseSpreadsheet(req.file.buffer, req.file.originalname);
+    const result = await importTickets(rows, getUser(req));
+    res.status(201).json(result);
   } catch (err) {
     next(err);
   }
