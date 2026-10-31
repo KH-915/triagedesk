@@ -75,8 +75,27 @@ export const listTicketsQuerySchema = z.object({
   q: z.string().optional(),
 });
 
+// ─── Bulk import ──────────────────────────────────────────────
+
+export const IMPORT_MAX_ROWS = 1000;
+export const IMPORT_MAX_BYTES = 5 * 1024 * 1024;
+
+/** One spreadsheet row. Same rules as a single create, plus an optional priority. */
+export const importRowSchema = createTicketSchema.extend({
+  // Spreadsheet cells are '' when blank and often capitalised ("High").
+  priority: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() !== '' ? v.trim().toLowerCase() : undefined),
+    z
+      .enum(priorityValues, {
+        errorMap: () => ({ message: 'priority must be one of: low, medium, high, critical' }),
+      })
+      .optional(),
+  ),
+});
+
 // ─── Inferred types ───────────────────────────────────────────
 
 export type CreateTicketInput = z.infer<typeof createTicketSchema>;
 export type UpdateTicketInput = z.infer<typeof updateTicketSchema>;
 export type ListTicketsQuery = z.infer<typeof listTicketsQuerySchema>;
+export type ImportRowInput = z.infer<typeof importRowSchema>;

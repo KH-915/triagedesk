@@ -3,8 +3,12 @@ import { prisma } from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { isValidTransition, allowedTransitionsFrom } from '../constants/transitions';
 import { isValidCategory } from '../constants/categories';
-import { predictCategory } from './ml.service';
+import { predictCategory, predictCategories } from './ml.service';
+import { SheetRow } from '../lib/spreadsheet';
 import {
+  IMPORT_MAX_ROWS,
+  ImportRowInput,
+  importRowSchema,
   CreateTicketInput,
   UpdateTicketInput,
   ListTicketsQuery,
@@ -61,6 +65,91 @@ export async function createTicket(input: CreateTicketInput, user: JwtPayload) {
     where: { id: ticket.id },
     data: { mlStatus: 'failed' },
   });
+}
+
+// ─── Bulk import ──────────────────────────────────────────────
+
+/**
+ * Imports parsed spreadsheet rows as tickets owned by the importing agent.
+ *
+ * All-or-nothing: every row is validated first, and if any row is invalid nothing is
+ * created and the 422 lists each bad row ("row 3": "..."), so the user can fix the file
+ * and re-upload without creating duplicates.
+ *
+ * Unlike createTicket, predictions are fetched before the insert (one /predict/batch call)
+ * so the whole import is a single createMany. ML failure still never blocks the import —
+ * the tickets are stored with ml_status='failed' and can be triaged manually.
+ */
+export async function importTickets(rows: SheetRow[], user: JwtPayload) {
+  if (rows.length === 0) {
+    throw new AppError(400, 'EMPTY_FILE', 'The file has a header row but no tickets.');
+  }
+  if (rows.length > IMPORT_MAX_ROWS) {
+    throw new AppError(
+      400,
+      'TOO_MANY_ROWS',
+      `The file has ${rows.length} tickets; the limit is ${IMPORT_MAX_ROWS} per import.`,
+    );
+  }
+
+  const columns = rows[0].values;
+  if (!('title' in columns) || !('body' in columns || 'description' in columns)) {
+    throw new AppError(
+      400,
+      'MISSING_COLUMNS',
+      'The header row must include "title" and "body" (or "description") columns.',
+    );
+  }
+
+  const valid: ImportRowInput[] = [];
+  const errors: Record<string, string> = {};
+  for (const { rowNumber, values } of rows) {
+    const parsed = importRowSchema.safeParse({
+      title: values.title,
+      body: values.body ?? values.description,
+      priority: values.priority,
+    });
+    if (parsed.success) valid.push(parsed.data);
+    else errors[`row ${rowNumber}`] = parsed.error.errors.map((e) => e.message).join('; ');
+  }
+
+  const invalidCount = Object.keys(errors).length;
+  if (invalidCount > 0) {
+    throw new AppError(
+      422,
+      'VALIDATION_ERROR',
+      `${invalidCount} of ${rows.length} rows are invalid. Nothing was imported.`,
+      errors,
+    );
+  }
+
+  const predictions = await predictCategories(valid.map((r) => `${r.title} ${r.body}`));
+
+  // OD-05: unknown labels are stored as-is and logged, same as single create
+  for (const p of predictions ?? []) {
+    if (!isValidCategory(p.predicted_category)) {
+      console.warn('[ML] Received unexpected category label', { label: p.predicted_category });
+    }
+  }
+
+  const { count } = await prisma.ticket.createMany({
+    data: valid.map((r, i) => ({
+      userId: user.sub,
+      title: r.title,
+      body: r.body,
+      priority: r.priority ?? null,
+      ...(predictions
+        ? {
+            predictedCategory: predictions[i].predicted_category,
+            confidenceScore: predictions[i].confidence_score,
+            modelVersion: predictions[i].model_version,
+            mlStatus: 'success' as const,
+          }
+        : { mlStatus: 'failed' as const }),
+    })),
+  });
+
+  return { imported: count, mlStatus: predictions ? 'success' : 'failed' };
 }
 
 // ─── List ─────────────────────────────────────────────────────

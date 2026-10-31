@@ -73,6 +73,10 @@ class Predictor:
         Raises:
           RuntimeError if the model is not loaded.
         """
+        return self.predict_many([text])[0]
+
+    def predict_many(self, texts: list[str]) -> list[dict]:
+        """Vectorised version of predict(); one dict per input text, in order."""
         if not self.is_loaded:
             raise RuntimeError(
                 "Model is not loaded. Run the training script before serving predictions."
@@ -81,16 +85,16 @@ class Predictor:
         import numpy as np  # imported lazily to keep startup fast
 
         # The pipeline exposes predict_proba because LogisticRegression was fit with it
-        proba = self._pipeline.predict_proba([text])[0]
-        class_idx = int(np.argmax(proba))
-        predicted_category: str = self._pipeline.classes_[class_idx]
-        confidence_score: float = float(proba[class_idx])
-
-        return {
-            "predicted_category": predicted_category,
-            "confidence_score": confidence_score,
-            "model_version": self._version,
-        }
+        probas = self._pipeline.predict_proba(texts)
+        results = []
+        for proba in probas:
+            class_idx = int(np.argmax(proba))
+            results.append({
+                "predicted_category": self._pipeline.classes_[class_idx],
+                "confidence_score": float(proba[class_idx]),
+                "model_version": self._version,
+            })
+        return results
 
 
 # Singleton — loaded once at startup via main.py lifespan

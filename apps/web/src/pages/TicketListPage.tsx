@@ -1,11 +1,13 @@
 import { ChangeEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, CATEGORIES, Page, PRIORITIES, STATUSES, TicketSummary } from '../api';
+import { useAuth } from '../auth';
 import { Badge } from '../components/Badge';
 
 const LIMIT = 10;
 
 export default function TicketListPage() {
+  const { user } = useAuth();
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
@@ -42,7 +44,10 @@ export default function TicketListPage() {
     <>
       <div className="row">
         <h1>Tickets</h1>
-        <Link className="button" to="/tickets/new">New ticket</Link>
+        <div className="actions">
+          {user?.role === 'AGENT' && <Link className="button secondary" to="/tickets/import">Import</Link>}
+          <Link className="button" to="/tickets/new">New ticket</Link>
+        </div>
       </div>
       <div className="filters">
         <input placeholder="Search title or body…" value={q} onChange={(e) => setQ(e.target.value)} />

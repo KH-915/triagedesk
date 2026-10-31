@@ -45,3 +45,26 @@ def test_predict_503_when_model_missing(monkeypatch):
     with TestClient(app) as c:
         assert c.get("/health").json()["model_loaded"] is False
         assert c.post("/predict", json={"text": "hello"}).status_code == 503
+
+
+def test_predict_batch_matches_single_predictions(client):
+    if not MODEL.exists():
+        pytest.skip("run training/train.py first")
+    texts = ["I was charged twice on my invoice", "My package never arrived"]
+    r = client.post("/predict/batch", json={"texts": texts})
+    assert r.status_code == 200
+    preds = r.json()["predictions"]
+    assert len(preds) == 2
+    for text, pred in zip(texts, preds):
+        assert pred == client.post("/predict", json={"text": text}).json()
+
+
+@pytest.mark.parametrize("texts", [[], ["ok", "  "]])
+def test_predict_batch_rejects_bad_input(client, texts):
+    assert client.post("/predict/batch", json={"texts": texts}).status_code == 422
+
+
+def test_predict_batch_503_when_model_missing(monkeypatch):
+    monkeypatch.setattr(predictor_module, "MODEL_PATH", "does/not/exist.pkl")
+    with TestClient(app) as c:
+        assert c.post("/predict/batch", json={"texts": ["hello"]}).status_code == 503

@@ -57,9 +57,22 @@ TriageDesk is a portfolio project demonstrating full-stack engineering and ML se
 
 Working end to end (verified locally): register/login, create ticket → ML category suggestion, agent confirms/overrides category, priority and status transitions, search/filter/pagination, role-based access (requesters see only their own tickets).
 
+**Bulk import (agents):** the Import page (`POST /api/tickets/import`, multipart field `file`) takes a `.csv` or `.xlsx` (first sheet) with a header row: `title`, `body` (or `description`), optional `priority`. Max 1000 rows / 5 MB. It is all-or-nothing: any invalid row returns 422 with per-row errors and nothing is created. Categories come from one call to the ML service's `POST /predict/batch`; if that fails, tickets are still imported with `mlStatus = failed`.
+
 **Not done yet:** cloud deployment, frontend tests, dashboard. The ML model is trained on a **synthetic** dataset — see [reports/model-evaluation.md](reports/model-evaluation.md); its scores are not real-world accuracy.
 
-## Local setup
+## Quick start
+
+Requirements: Node 20.6+, Python 3.12, Docker (for Postgres).
+
+```bash
+powershell -ExecutionPolicy Bypass -File scripts\dev.ps1   # Windows
+scripts/dev.sh                                             # Linux/macOS
+```
+
+The first run does the full setup below (creates `.env` with a random `JWT_SECRET`, installs deps, migrates, seeds, trains the model). Later runs skip anything already done and start the ML service, API and web app together; Ctrl+C stops them. Use `-Setup` / `--setup` to redo every step, and `-NoRun` / `--no-run` to set up without starting anything.
+
+## Local setup (manual)
 
 Requirements: Node 20.6+, Python 3.12, PostgreSQL 16 (e.g. `docker compose -f infra/docker-compose.yml up -d db`).
 
