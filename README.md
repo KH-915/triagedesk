@@ -59,7 +59,18 @@ Working end to end (verified locally): register/login, create ticket → ML cate
 
 **Not done yet:** cloud deployment, frontend tests, dashboard. The ML model is trained on a **synthetic** dataset — see [reports/model-evaluation.md](reports/model-evaluation.md); its scores are not real-world accuracy.
 
-## Local setup
+## Quick start
+
+Requirements: Node 20.6+, Python 3.12, Docker (for Postgres).
+
+```bash
+powershell -ExecutionPolicy Bypass -File scripts\dev.ps1   # Windows
+scripts/dev.sh                                             # Linux/macOS
+```
+
+The first run does the full setup below (creates `.env` with a random `JWT_SECRET`, installs deps, migrates, seeds, trains the model). Later runs skip anything already done and start the ML service, API and web app together; Ctrl+C stops them. Use `-Setup` / `--setup` to redo every step, and `-NoRun` / `--no-run` to set up without starting anything.
+
+## Local setup (manual)
 
 Requirements: Node 20.6+, Python 3.12, PostgreSQL 16 (e.g. `docker compose -f infra/docker-compose.yml up -d db`).
 
